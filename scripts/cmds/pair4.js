@@ -5,7 +5,7 @@ const path = require("path");
 module.exports = {
   config: {
     name: "pair4",
-    author: 'Nyx x Ariyan  modified by NIROB',
+    author: 'Nyx x Ariyan MODIFIED BY NIROB',
     category: "TOOLS"
   },
 
@@ -40,30 +40,18 @@ module.exports = {
       const matchName = selectedMatch.name;
       const lovePercentage = Math.floor(Math.random() * 100) + 1;
 
-      // Lovely notes (bold kawaii style)
-      const notes = [
-        "💖 𝓨𝓸𝓾 𝓪𝓻𝓮 𝓶𝔂 𝓼𝓾𝓷𝓼𝓱𝓲𝓷𝓮! 🌸",
-        "💞 𝓔𝓿𝓮𝓻𝔂 𝓭𝓪𝔶 𝔀𝓲𝓽𝓱 𝔂𝓸𝓾 𝓲𝓼 𝓪 𝓬𝓱𝓮𝓻𝓲𝓼𝓱! 💫",
-        "🌷 𝓨𝓸𝓾’𝓻𝓮 𝓶𝔂 𝓬𝓾𝓽𝓮 𝓵𝓲𝓽𝓽𝓵𝓮 𝓽𝓻𝓮𝓪𝓼𝓾𝓻𝓮! 💖",
-        "💌 𝓜𝔂 𝓱𝓮𝓪𝓻𝓽 𝓫𝓮𝓪𝓽𝓼 𝓯𝓸𝓻 𝔂𝓸𝓾! 🌸",
-        "✨ 𝓨𝓸𝓾 𝓶𝓪𝓴𝓮 𝓶𝔂 𝔀𝓸𝓻𝓵𝓭 𝓫𝓻𝓲𝓰𝓱𝓽! 💞"
-      ];
-      const lovelyNote = notes[Math.floor(Math.random() * notes.length)];
-
       // Canvas setup
       const width = 800, height = 400;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
-      const background = await loadImage("https://i.postimg.cc/ZqqqQ1x2/Picsart-25-08-14-21-50-43-048.jpg");
+      const background = await loadImage("https://i.postimg.cc/4xSzJ7SZ/Picsart-25-08-15-19-44-03-606.jpg");
       const senderAvatar = await loadImage(await usersData.getAvatarUrl(event.senderID));
-      const matchAvatar = await loadImage(await usersData.getAvatarUrl(selectedMatch.id));
+      const matchAvatar = await loadImage(await usersData.getAvatarUrl(selectedMatch.id)); 
 
       ctx.drawImage(background, 0, 0, width, height);
-
-      // Draw avatars
-      ctx.drawImage(senderAvatar, 80, 100, 150, 150);
-      ctx.drawImage(matchAvatar, width - 230, 100, 150, 150);
+      ctx.drawImage(senderAvatar, 385, 40, 170, 170);
+      ctx.drawImage(matchAvatar, width - 213, 190, 180, 170);
 
       const outputPath = path.join(__dirname, 'pair_output.png');
       const out = fs.createWriteStream(outputPath);
@@ -71,21 +59,14 @@ module.exports = {
       stream.pipe(out);
 
       out.on('finish', () => {
-        const message = 
-`🄷🄴🅈 🄻🄾🅅🄴🄻🅈 🄿🄰🄸🅁 💖
-@${senderName} ＆ @${matchName}
-
-💖 𝐌𝐚𝐭𝐜𝐡 𝐑𝐚𝐭𝐞: ${lovePercentage}%
-
-❝ ${lovelyNote} ❞
-🌸💫`;
+        const message = `🥰𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥 𝐩𝐚𝐢𝐫𝐢𝐧𝐠\n` +
+                        `• ${senderName} 🎀\n` +
+                        `• ${matchName} 🎀\n` +
+                        `💌 𝐖𝐢𝐬𝐡 𝐲𝐨𝐮 𝐭𝐰𝐨 𝐡𝐮𝐧𝐝𝐫𝐞𝐝 𝐲𝐞𝐚𝐫𝐬 𝐨𝐟 𝐡𝐚𝐩𝐩𝐢𝐧𝐞𝐬𝐬 💕\n\n` +
+                        `𝐋𝐨𝐯𝐞 𝐩𝐞𝐫𝐜𝐞𝐧𝐭𝐚𝐠𝐞: ${lovePercentage}% 💙`;
 
         api.sendMessage({
           body: message,
-          mentions: [
-            { tag: senderName, id: event.senderID },
-            { tag: matchName, id: selectedMatch.id }
-          ],
           attachment: fs.createReadStream(outputPath)
         }, event.threadID, () => fs.unlinkSync(outputPath), event.messageID);
       });
