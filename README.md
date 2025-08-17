@@ -10,8 +10,8 @@
 
 ## 👤 OWNER INFO
 
-- 👑 Name: **MaHi**
-- 🏙️ From: **Dhaka**
-- 🎂 Age: **16**
+- **👑** Name: **NIROB**
+- 🏙️ From: **BIKRAMPUR**
+- 🎂 Age: **19**
 
 ---
