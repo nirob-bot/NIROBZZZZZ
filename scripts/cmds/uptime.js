@@ -1,5 +1,4 @@
 const os = require("os");
-const fs = require("fs-extra");
 const axios = require("axios");
 
 const startTime = new Date();
@@ -9,83 +8,70 @@ module.exports = {
     name: "uptime",
     aliases: ["upt"],
     author: "NIROB",
-    countDown: 0,
-    role: 0,
     category: "system",
-    longDescription: {
-      en: "Get System Information",
-    },
+    longDescription: { en: "Get System Information with group count" },
   },
 
-  onStart: async function ({ api, event, args, threadsData, usersData }) {
+  onStart: async function ({ api, event, usersData, threadsData }) {
     try {
-      const uptimeInSeconds = (new Date() - startTime) / 1000;
-      const days = Math.floor(uptimeInSeconds / (3600 * 24));
-      const hours = Math.floor((uptimeInSeconds % (3600 * 24)) / 3600);
-      const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
-      const secondsLeft = Math.floor(uptimeInSeconds % 60);
-      const uptimeFormatted = `${days}d ${hours}h ${minutes}m ${secondsLeft}s`;
+      // uptime
+      const uptimeSec = (new Date() - startTime) / 1000;
+      const d = Math.floor(uptimeSec / 86400);
+      const h = Math.floor((uptimeSec % 86400) / 3600);
+      const m = Math.floor((uptimeSec % 3600) / 60);
+      const s = Math.floor(uptimeSec % 60);
 
-      const cpuUsage = os.cpus().reduce((acc, curr) => acc + curr.times.user, 0) / os.cpus().length;
-      const totalMemoryGB = os.totalmem() / 1024 ** 3;
-      const freeMemoryGB = os.freemem() / 1024 ** 3;
-      const usedMemoryGB = totalMemoryGB - freeMemoryGB;
+      // memory & CPU
+      const totalMemGB = os.totalmem() / 1024 ** 3;
+      const freeMemGB = os.freemem() / 1024 ** 3;
+      const usedMemGB = totalMemGB - freeMemGB;
+      const cpuUsage = (os.cpus().reduce((acc, cpu) => acc + cpu.times.user, 0) / os.cpus().length).toFixed(1);
 
-      const allUsers = await usersData.getAll();
-      const allThreads = await threadsData.getAll();
-      const currentDate = new Date();
-      const date = currentDate.toLocaleDateString("en-US");
-      const time = currentDate.toLocaleTimeString("en-US", {
-        timeZone: "Asia/Kolkata",
-        hour12: true,
-      });
+      // users count
+      let userCount = 0;
+      if (usersData?.getAllIds) userCount = (await usersData.getAllIds()).length;
 
-      const timeStart = Date.now();
-      await api.sendMessage("🔎 Checking system info...", event.threadID);
-      const ping = Date.now() - timeStart;
-
-      let pingStatus = "⛔ Bad System";
-      if (ping < 1000) pingStatus = "✅ Smooth System";
-
-      const systemInfo = `♡   ∩_∩
-（„• ֊ •„)♡
-╭─∪∪────────────⟡
-│ 𝗨𝗣𝗧𝗜𝗠𝗘 𝗜𝗡𝗙𝗢
-├───────────────⟡
-│ ⏰ Runtime: ${uptimeFormatted}
-│ OS: ${os.type()} ${os.arch()}
-│ CPU: ${os.cpus()[0].model}
-│ Storage: ${usedMemoryGB.toFixed(2)} GB / ${totalMemoryGB.toFixed(2)} GB
-│ CPU Usage: ${cpuUsage.toFixed(1)}%
-│ RAM: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB
-├───────────────⟡
-│ 📆 Date: ${date}
-│ ⏱️ Time: ${time}
-│ 👥 Users: ${allUsers.length}
-│ 🧵 Threads: ${allThreads.length}
-│ 📡 Ping: ${ping}ms
-│ Status: ${pingStatus}
-╰───────────────⟡`;
-
-      // Media from catbox (video)
-      let attachment = null;
-      const mediaUrl = "https://files.catbox.moe/9nx2wx.mp4";
-
-      if (mediaUrl.endsWith(".jpg") || mediaUrl.endsWith(".png") || mediaUrl.endsWith(".mp4")) {
-        const response = await axios.get(mediaUrl, { responseType: "stream" });
-        attachment = response.data;
+      // groups count (from DB)
+      let groupCount = 0;
+      try {
+        const allThreads = await threadsData.getAll();
+        groupCount = allThreads.filter(t => t.isGroup).length;
+      } catch (e) {
+        console.error("Group count error:", e);
       }
 
-      api.sendMessage(
-        {
-          body: systemInfo,
-          attachment,
-        },
-        event.threadID,
-      );
-    } catch (error) {
-      console.error("System info error:", error);
-      api.sendMessage("⚠️ Could not retrieve system information.", event.threadID);
+      // date & time
+      const now = new Date();
+      const date = now.toLocaleDateString("en-US");
+      const time = now.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour12: true });
+
+      // ping
+      const pingStart = Date.now();
+      await api.sendMessage("🔎 Checking system info...", event.threadID);
+      const ping = Date.now() - pingStart;
+      const status = ping < 1000 ? "✅ Smooth System" : "⛔ Bad System";
+
+      // message
+      const msg = `
+╭─⟡ 𝗨𝗣𝗧𝗜𝗠𝗘 ⟡─╮
+│ ⏰ ${d}d ${h}h ${m}m ${s}s
+│ OS: ${os.type()} ${os.arch()}
+│ CPU: ${os.cpus()[0].model} (${cpuUsage}%)
+│ RAM: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB
+│ Storage: ${usedMemGB.toFixed(2)} / ${totalMemGB.toFixed(2)} GB
+├───────────────⟡
+│ 📆 ${date} ⏱️ ${time}
+│ 👥 Users: ${userCount}
+│ 🧵 Groups: ${groupCount}
+│ 📡 Ping: ${ping}ms
+│ Status: ${status}
+╰───────────────⟡
+`;
+
+      api.sendMessage(msg, event.threadID);
+    } catch (err) {
+      console.error("Uptime error:", err);
+      api.sendMessage("⚠️ Could not retrieve system info.", event.threadID);
     }
-  },
+  }
 };
