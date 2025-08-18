@@ -55,11 +55,11 @@ module.exports.onStart = async function ({ api, event, message, usersData }) {
     // Process image with jimp
     const bg = await jimp.read(bgPath);
     const avatar = await jimp.read(avatarPath);
-    avatar.resize(100, 100).circle();
+    avatar.resize(130, 130).circle();
 
     // Composite avatar on cockroach head
-    const x = 170;
-    const y = 60;
+    const x = 460;
+    const y = 350;
     bg.composite(avatar, x, y);
 
     await bg.writeAsync(outputPath);
