@@ -33,7 +33,7 @@ module.exports = {
 
       try {
         const tinyUrl = await tinyurl.shorten(url);
-        const apiUrl = `https://prompt-gen-eight.vercel.app/kshitiz?url=${encodeURIComponent(tinyUrl)}`;
+        const apiUrl = `https://mahabub-prompt-api.vercel.app/api/prompt?url=https://i.postimg.cc/90VDXf9t/b908c93ba950c37b67402f734ba589e3.jpg}`;
         const response = await axios.get(apiUrl);
 
         const { prompt } = response.data;
