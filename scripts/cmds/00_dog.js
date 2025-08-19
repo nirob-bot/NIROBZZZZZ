@@ -1,3 +1,5 @@
+// commands/dog.js
+
 const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
@@ -8,67 +10,66 @@ const VIP_FILE = path.join(__dirname, "vip.json");
 module.exports = {
   config: {
     name: "dog",
-    version: "1.0.0",
-    author: "Arafat + VIP Lock by Kakashi",
+    version: "1.2.0",
+    author: "Kakashi + VIP Lock",
     countDown: 5,
     role: 0,
-    shortDescription: "Put someone on a dog image! (VIP only)",
-    longDescription: "Puts the tagged/replied user's face on a dog image, VIP users only.",
+    shortDescription: "Turns someone into a dog (VIP only)",
+    longDescription: "Puts the tagged/replied user's face on a dog template, VIP users only.",
     category: "fun",
     guide: {
-      en: "{pn} @mention or reply to turn someone into a dog"
+      en: "{pn} @mention or reply"
     }
   },
 
   langs: {
     en: {
+      noTag: "🐶 You must tag or reply to someone to dogify them!",
       notVip: "❌ | You are not a VIP user. Type !vip to see how to get VIP access."
     }
   },
 
-  onStart: async function ({ event, message, api }) {
-    let vipDB = [];
-    if (fs.existsSync(VIP_FILE)) {
-      try {
-        vipDB = JSON.parse(fs.readFileSync(VIP_FILE));
-      } catch {
-        vipDB = [];
-      }
-    }
-
-    const senderID = event.senderID;
-    const isVip = vipDB.some(user => user.uid === senderID && (user.expire === 0 || user.expire > Date.now()));
-
-    if (!isVip) {
-      return message.reply(this.langs.en.notVip);
-    }
-
-    let targetID = Object.keys(event.mentions)[0];
-    if (event.type === "message_reply") {
-      targetID = event.messageReply.senderID;
-    }
-
-    if (!targetID) {
-      return message.reply("❗ কাউকে ট্যাগ কর বা রিপ্লাই দে, যাতে ওকে কুকুর বানানো যায়!");
-    }
-
-    if (targetID === event.senderID) {
-      return message.reply("❗ নিজেকে কুকুর বানাতে চাস? একটু লজ্জা কর ভাই! 🐶");
-    }
-
-    const baseFolder = path.join(__dirname, "Arafat_Temp");
-    const bgPath = path.join(baseFolder, "dog2.png");
-    const avatarPath = path.join(baseFolder, `avatar_${targetID}.png`);
-    const outputPath = path.join(baseFolder, `dog_result_${targetID}.png`);
-
+  onStart: async function ({ event, message, api, getLang }) {
     try {
+      // === VIP check ===
+      let vipDB = [];
+      if (fs.existsSync(VIP_FILE)) {
+        try {
+          vipDB = JSON.parse(fs.readFileSync(VIP_FILE));
+        } catch {
+          vipDB = [];
+        }
+      }
+
+      const senderID = event.senderID;
+      const isVip = vipDB.some(
+        user =>
+          user.uid === senderID &&
+          (user.expire === 0 || user.expire > Date.now())
+      );
+
+      if (!isVip) return message.reply(getLang("notVip"));
+      // =================
+
+      let targetID = Object.keys(event.mentions || {})[0];
+      if (event.type === "message_reply") {
+        targetID = event.messageReply.senderID;
+      }
+      if (!targetID) return message.reply(getLang("noTag"));
+
+      const baseFolder = path.join(__dirname, "DOG_RESOURCES");
+      const bgPath = path.join(baseFolder, "dog.png");
+      const avatarPath = path.join(baseFolder, `avatar_${targetID}.png`);
+      const outputPath = path.join(baseFolder, `dog_result_${targetID}.png`);
+
       if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder);
 
-      // Download dog image from GitHub raw
+      // Download dog template if missing
       if (!fs.existsSync(bgPath)) {
-        const imgUrl = "https://raw.githubusercontent.com/kakashiNN/FUNNY-PHOTOS-/main/Dog2.jpeg";
-        const res = await axios.get(imgUrl, { responseType: "arraybuffer" });
-        await fs.writeFile(bgPath, res.data);
+        const url =
+          "https://raw.githubusercontent.com/kakashiNN/FUNNY-PHOTOS-/main/Dog2.jpeg";
+        const res = await axios.get(url, { responseType: "arraybuffer" });
+        fs.writeFileSync(bgPath, res.data);
       }
 
       // Download avatar
@@ -78,44 +79,36 @@ module.exports = {
           { responseType: "arraybuffer" }
         )
       ).data;
-      await fs.writeFile(avatarPath, avatarBuffer);
-
-      const avatarImg = await jimp.read(avatarPath);
-      avatarImg.circle();
-      await avatarImg.writeAsync(avatarPath);
+      fs.writeFileSync(avatarPath, avatarBuffer);
 
       const bg = await jimp.read(bgPath);
-      bg.resize(600, 800);
+      const avatar = await jimp.read(avatarPath);
+      avatar.resize(200, 200).circle();
 
-      const avatarCircle = await jimp.read(avatarPath);
-      avatarCircle.resize(150, 150);
+      // Place avatar on dog's head
+      const x = 280;
+      const y = 400;
+      bg.composite(avatar, x, y);
 
-      const xCenter = (bg.getWidth() - avatarCircle.getWidth()) / 2;
-      const yTop = 220;
-
-      bg.composite(avatarCircle, xCenter, yTop);
-
-      const finalBuffer = await bg.getBufferAsync("image/png");
-      await fs.writeFile(outputPath, finalBuffer);
+      await bg.writeAsync(outputPath);
 
       const userInfo = await api.getUserInfo(targetID);
-      const tagName = userInfo[targetID]?.name || "Someone";
+      const name = userInfo[targetID]?.name || "Someone";
 
       await message.reply(
         {
-          body: `🐶\n${tagName} এখন একটা সুপার কিউট কুকুর!`,
-          mentions: [{ tag: tagName, id: targetID }],
-          attachment: fs.createReadStream(outputPath),
+          body: `🤣 ${name} এখন একেবারে আসল কুকুর! 🐶`,
+          mentions: [{ tag: name, id: targetID }],
+          attachment: fs.createReadStream(outputPath)
         },
         () => {
-          try { fs.unlinkSync(avatarPath); } catch (e) {}
-          try { fs.unlinkSync(outputPath); } catch (e) {}
+          fs.unlinkSync(avatarPath);
+          fs.unlinkSync(outputPath);
         }
       );
-
     } catch (err) {
-      console.error("🐞 Dog Command Error:", err);
-      message.reply("ওপ্পস! কুকুরটা পালাইছে বোধহয়... আবার চেষ্টা কর।");
+      console.error("🐶 Dog command error:", err);
+      return message.reply("❌ Error while turning into dog.");
     }
   }
 };
