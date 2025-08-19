@@ -23,8 +23,10 @@ module.exports = {
     const { downloadFile } = global.utils;
     const dirMaterial = __dirname + `/cache/canvas/`;
     const pathBg = resolve(__dirname, "cache/canvas", "marriedv5.png");
+
     if (!existsSync(dirMaterial)) mkdirSync(dirMaterial, { recursive: true });
     if (!existsSync(pathBg)) {
+      // GitHub raw background
       await downloadFile(
         "https://raw.githubusercontent.com/nirobbhbott-ui/FUNNY-PHOTOS-/main/married.jpeg",
         pathBg
@@ -76,8 +78,8 @@ module.exports = {
 
     // Male → male slot, Female → female slot
     function place(img, gender) {
-      if (gender === "male") return [img.resize(80, 80), 240, 130]; // male slot
-      return [img.resize(80, 80), 140, 180]; // female slot
+      if (gender === "male") return [img.resize(110, 110), 500, 320]; // male slot
+      return [img.resize(100, 100), 430, 400]; // female slot
     }
 
     const [p1, x1, y1] = place(circle1, gender1);
