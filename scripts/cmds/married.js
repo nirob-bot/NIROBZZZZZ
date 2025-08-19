@@ -1,73 +1,159 @@
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
+const jimp = require("jimp");
+
 module.exports = {
-		config: {
-				name: "married",
-				aliases: ["married"],
-				version: "1.0",
-				author: "kivv",
-				countDown: 5,
-				role: 0,
-				shortDescription: "get a wife",
-				longDescription: "",
-				category: "married",
-				guide: "{@mention}"
-		}, 
+  config: {
+    name: "married",
+    aliases: ["married"],
+    version: "6.1",
+    author: "kivv + modified by Nirob",
+    countDown: 5,
+    role: 0,
+    shortDescription: "Get a wife/husband",
+    longDescription: "",
+    category: "fun",
+    guide: "{@mention}"
+  },
 
-		onLoad: async function () {
-				const { resolve } = require ("path");
-				const { existsSync, mkdirSync } = require ("fs-extra");
-				const { downloadFile } = global.utils;
-				const dirMaterial = __dirname + `/cache/canvas/`;
-				const path = resolve(__dirname, 'cache/canvas', 'marriedv5.png');
-				if (!existsSync(dirMaterial + "canvas")) mkdirSync(dirMaterial, { recursive: true });
-				if (!existsSync(path)) await downloadFile("https://i.ibb.co/mhxtgwm/49be174dafdc259030f70b1c57fa1c13.jpg", path);
-		},
+  onLoad: async function () {
+    const { resolve } = require("path");
+    const { existsSync, mkdirSync } = require("fs-extra");
+    const { downloadFile } = global.utils;
+    const dirMaterial = __dirname + `/cache/canvas/`;
+    const pathBg = resolve(__dirname, "cache/canvas", "marriedv5.png");
+    if (!existsSync(dirMaterial)) mkdirSync(dirMaterial, { recursive: true });
+    if (!existsSync(pathBg)) {
+      await downloadFile(
+        "https://raw.githubusercontent.com/nirobbhbott-ui/FUNNY-PHOTOS-/main/married.jpeg",
+        pathBg
+      );
+    }
+  },
 
-		circle: async function (image) {
-				const jimp = require("jimp");
-				image = await jimp.read(image);
-				image.circle();
-				return await image.getBufferAsync("image/png");
-		},
+  circle: async function(image) {
+    image = await jimp.read(image);
+    image.circle();
+    return await image.getBufferAsync("image/png");
+  },
 
-		makeImage: async function ({ one, two }) {
-				const fs = require ("fs-extra");
-				const path = require ("path");
-				const axios = require ("axios"); 
-				const jimp = require ("jimp");
-				const __root = path.resolve(__dirname, "cache", "canvas");
+  getGender: async function(api, threadID, uid) {
+    try {
+      const info = await api.getThreadInfo(threadID);
+      const userInfo = info.userInfo.find(u => u.id === uid);
+      if (!userInfo) return Math.random() > 0.5 ? "male" : "female";
+      return userInfo.gender?.toLowerCase() || (Math.random() > 0.5 ? "male" : "female");
+    } catch {
+      return Math.random() > 0.5 ? "male" : "female";
+    }
+  },
 
-				let batgiam_img = await jimp.read(__root + "/marriedv5.png");
-				let pathImg = __root + `/batman${one}_${two}.png`;
-				let avatarOne = __root + `/avt_${one}.png`;
-				let avatarTwo = __root + `/avt_${two}.png`;
+  makeImage: async function({ uid1, uid2, gender1, gender2 }) {
+    const __root = path.resolve(__dirname, "cache", "canvas");
+    const bg = await jimp.read(__root + "/marriedv5.png");
 
-				let getAvatarOne = (await axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
-				fs.writeFileSync(avatarOne, Buffer.from(getAvatarOne, 'utf-8'));
+    const pathImg = __root + `/married_${uid1}_${uid2}.png`;
+    const pathAvt1 = __root + `/avt_${uid1}.png`;
+    const pathAvt2 = __root + `/avt_${uid2}.png`;
 
-				let getAvatarTwo = (await axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
-				fs.writeFileSync(avatarTwo, Buffer.from(getAvatarTwo, 'utf-8'));
+    // Download avatars 720x720
+    const avt1 = (await axios.get(
+      `https://graph.facebook.com/${uid1}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
+      { responseType: "arraybuffer" }
+    )).data;
+    fs.writeFileSync(pathAvt1, Buffer.from(avt1));
 
-				let circleOne = await jimp.read(await this.circle(avatarOne));
-				let circleTwo = await jimp.read(await this.circle(avatarTwo));
-				batgiam_img.composite(circleOne.resize(130, 130), 300, 150).composite(circleTwo.resize(130, 130), 170, 230);
+    const avt2 = (await axios.get(
+      `https://graph.facebook.com/${uid2}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
+      { responseType: "arraybuffer" }
+    )).data;
+    fs.writeFileSync(pathAvt2, Buffer.from(avt2));
 
-				let raw = await batgiam_img.getBufferAsync("image/png");
+    // Circle avatars
+    const circle1 = await jimp.read(await this.circle(pathAvt1));
+    const circle2 = await jimp.read(await this.circle(pathAvt2));
 
-				fs.writeFileSync(pathImg, raw);
-				fs.unlinkSync(avatarOne);
-				fs.unlinkSync(avatarTwo);
+    // Male → male slot, Female → female slot
+    function place(img, gender) {
+      if (gender === "male") return [img.resize(80, 80), 240, 130]; // male slot
+      return [img.resize(80, 80), 140, 180]; // female slot
+    }
 
-				return pathImg;
-		},
+    const [p1, x1, y1] = place(circle1, gender1);
+    const [p2, x2, y2] = place(circle2, gender2);
 
-		onStart: async function ({ event, api, args }) { 
-				const fs = require ("fs-extra");
-				const { threadID, messageID, senderID } = event;
-				const mention = Object.keys(event.mentions);
-				if (!mention[0]) return api.sendMessage("Please mention 1 person.", threadID, messageID);
-				else {
-						const one = senderID, two = mention[0];
-						return this.makeImage({ one, two }).then(path => api.sendMessage({ body: "", attachment: fs.createReadStream(path) }, threadID, () => fs.unlinkSync(path), messageID));
-				}
-		}
+    bg.composite(p1, x1, y1);
+    bg.composite(p2, x2, y2);
+
+    const raw = await bg.getBufferAsync("image/png");
+    fs.writeFileSync(pathImg, raw);
+
+    fs.unlinkSync(pathAvt1);
+    fs.unlinkSync(pathAvt2);
+
+    return pathImg;
+  },
+
+  onStart: async function({ event, api, usersData }) {
+    const { threadID, messageID, senderID, mentions } = event;
+    const mention = Object.keys(mentions);
+
+    let partner;
+    if (mention[0]) partner = mention[0];
+    else {
+      const allUsers = await api.getThreadInfo(threadID);
+      const members = allUsers.participantIDs.filter(id => id !== senderID);
+
+      // Detect sender gender
+      const genderSender = await this.getGender(api, threadID, senderID);
+
+      // Filter opposite gender
+      const filtered = [];
+      for (let uid of members) {
+        const g = await this.getGender(api, threadID, uid);
+        if (genderSender === "male" && g === "female") filtered.push(uid);
+        if (genderSender === "female" && g === "male") filtered.push(uid);
+      }
+
+      if (filtered.length === 0)
+        return api.sendMessage("❌ Opposite gender partner not found!", threadID, messageID);
+
+      partner = filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    // Detect genders
+    const genderSender = await this.getGender(api, threadID, senderID);
+    const genderPartner = await this.getGender(api, threadID, partner);
+
+    // Get names
+    let name1, name2;
+    try {
+      name1 = await usersData.getName(senderID);
+      if (!name1) throw new Error();
+    } catch {
+      const info = await api.getUserInfo(senderID);
+      name1 = info[senderID]?.name || "Unknown";
+    }
+
+    try {
+      name2 = await usersData.getName(partner);
+      if (!name2) throw new Error();
+    } catch {
+      const info = await api.getUserInfo(partner);
+      name2 = info[partner]?.name || "Unknown";
+    }
+
+    // Create image
+    return this.makeImage({ uid1: senderID, uid2: partner, gender1: genderSender, gender2: genderPartner })
+      .then(path => {
+        api.sendMessage(
+          { body: `💍 Congratulations 
+${name1} & ${name2}!`, attachment: fs.createReadStream(path) },
+          threadID,
+          () => fs.unlinkSync(path),
+          messageID
+        );
+      });
+  }
 };
