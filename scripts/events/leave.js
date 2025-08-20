@@ -25,6 +25,6 @@ module.exports = {
  } else {
  id = parseInt(args.join(" "));
  }
- return api.sendMessage('▣𝗔𝗬𝗔𝗡 𝗕𝗢𝗧 𝗟𝗘𝗔𝗩𝗘:\n》Mon succès est inévitable, car je suis destiné à être au sommet.\n\n➤𝗕𝗘𝗬 𝗟𝗘𝗦 𝗡𝗔𝗭𝗘𝗦', id, () => api.removeUserFromGroup(api.getCurrentUserID(), id))
+ return api.sendMessage(' 𝗞𝗔𝗞𝗔𝗦𝗛𝗜 𝗕𝗢𝗧 𝗟𝗘𝗔𝗩𝗘:\n》Mon succès est inévitable, car je suis destiné à être au sommet.\n\n➤😌🤞🏻', id, () => api.removeUserFromGroup(api.getCurrentUserID(), id))
 		}
 	}
