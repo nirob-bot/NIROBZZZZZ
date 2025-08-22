@@ -6,10 +6,10 @@ module.exports = {
   config: {
     name: "leave",
     eventType: ["log:unsubscribe"],
-    version: "1.0.1",
+    version: "1.0.2",
     credits: "Nayan modified by NIROB",
     description: "Send Catbox video when someone leaves",
-    category: "event"   // 🔥 compulsory field
+    category: "event"
   },
 
   onStart: async function ({ api, event, Users, Threads }) {
@@ -17,26 +17,49 @@ module.exports = {
 
     const { threadID } = event;
 
-    // Thread data
-    const data = global.data.threadData.get(parseInt(threadID)) || (await Threads.getData(threadID)).data;
-    const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
-    const type = (event.author == event.logMessageData.leftParticipantFbId) ? "লিভ নেউয়ার জন্য ধন্যবাদ 🤢" : "Kicked by Administrator";
+    // ✅ Safe thread data fetch
+    let threadData;
+    try {
+      const threadInfo = await Threads.getData(threadID);
+      threadData = threadInfo?.data || {};
+    } catch (e) {
+      threadData = {};
+    }
 
-    // Custom message
-    let msg = (typeof data.customLeave === "undefined")
+    // ✅ Safe username fetch
+    let name;
+    try {
+      name = global.data?.userName?.get(event.logMessageData.leftParticipantFbId) 
+          || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
+    } catch (e) {
+      name = "Unknown User";
+    }
+
+    const type = (event.author == event.logMessageData.leftParticipantFbId)
+      ? "লিভ নেউয়ার জন্য ধন্যবাদ 🤢"
+      : "Kicked by Administrator";
+
+    // Custom leave message
+    let msg = (typeof threadData.customLeave === "undefined")
       ? "তুই {name} গ্রুপে থাকার যোগ্য না আবাল .\n\n{type}"
-      : data.customLeave;
+      : threadData.customLeave;
+
     msg = msg.replace(/\{name}/g, name).replace(/\{type}/g, type);
 
-    // Load Catbox video from JSON
+    // Load video list from JSON
     const jsonPath = path.join(__dirname, "..", "nirob", "leave.json");
     let formPush = { body: msg };
 
     if (fs.existsSync(jsonPath)) {
-      const videos = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
-      if (Array.isArray(videos) && videos.length > 0) {
-        const videoURL = videos[0]; // fixed first video
-        formPush.attachment = await getVideoStream(videoURL);
+      try {
+        const videos = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+        if (Array.isArray(videos) && videos.length > 0) {
+          // Random video instead of fixed index
+          const videoURL = videos[Math.floor(Math.random() * videos.length)];
+          formPush.attachment = await getVideoStream(videoURL);
+        }
+      } catch (e) {
+        console.error("❌ Error parsing leave.json:", e);
       }
     }
 
@@ -44,7 +67,7 @@ module.exports = {
   }
 };
 
-// Helper: download video
+// Helper: download video to tmp file
 async function getVideoStream(url) {
   const tmpPath = path.join(__dirname, "..", "nirob", "tmpLeaveVideo.mp4");
   const writer = fs.createWriteStream(tmpPath);
