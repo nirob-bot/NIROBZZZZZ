@@ -2,35 +2,34 @@ module.exports = {
   config: {
     name: "leave",
     eventType: ["log:unsubscribe"],
-    version: "1.1.0",
+    version: "1.0.9",
     credits: "Nayan modified by NIROB",
-    description: "Send Catbox video only when someone leaves by themselves with proper name",
+    description: "Send Catbox video only when someone leaves by themselves",
     category: "event"
   },
 
   onStart: async function ({ api, event, Users }) {
     try {
+      // Bot নিজে leave করলে কিছু পাঠাবে না
       if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
-      if (event.author != event.logMessageData.leftParticipantFbId) return; // Only self-leave
 
-      const { leftParticipantFbId, threadID } = event.logMessageData;
+      // শুধু তখন trigger হবে যখন ইউজার নিজে leave করে
+      if (event.author != event.logMessageData.leftParticipantFbId) return;
 
-      // ✅ Retry name fetch 2 times
-      let name;
-      for (let i = 0; i < 2; i++) {
-        try {
-          name = await Users.getNameUser(leftParticipantFbId);
-          if (name) break;
-        } catch {}
-      }
-      if (!name) name = `User (${leftParticipantFbId})`; // Fallback if still fails
+      // ইউজারের নাম fetch
+      let name = "Unknown User";
+      try {
+        name = global.data?.userName?.get(event.logMessageData.leftParticipantFbId)
+               || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
+      } catch {}
 
-      const msg = `${name} তুই গ্রুপে থাকার যোগ্য না যা ভাগ 😡';
+      const msg = `{userName} তুই গ্রুপে থাকার যোগ্য না যা ভাগ 🤢`;
 
-      // Fixed Catbox video
+      // Fixed Catbox video URL
       const videoURL = "https://files.catbox.moe/918f0h.mp4";
 
       let attachment = null;
+      // Video fetch fail হলেও bot crash হবে না
       if (global.utils?.getStreamFromURL) {
         try {
           attachment = await global.utils.getStreamFromURL(videoURL);
@@ -39,8 +38,10 @@ module.exports = {
         }
       }
 
-      return api.sendMessage({ body: msg, attachment }, threadID);
-
+      return api.sendMessage(
+        { body: msg, attachment },
+        event.threadID
+      );
     } catch (err) {
       console.error("❌ Leave event error:", err);
     }
