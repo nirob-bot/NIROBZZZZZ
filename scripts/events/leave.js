@@ -7,7 +7,7 @@ module.exports.config = {
 	eventType: ["log:unsubscribe"],
 	version: "1.0.0",
 	credits: "Nayan modified by NIROB",
-	description: "Notify leave with random Drive video",
+	description: "Notify leave with Catbox MP4 video",
 };
 
 module.exports.OnStart = async function({ api, event, Users, Threads }) {
@@ -26,16 +26,21 @@ module.exports.OnStart = async function({ api, event, Users, Threads }) {
 		: data.customLeave;
 	msg = msg.replace(/\{name}/g, name).replace(/\{type}/g, type);
 
-	// Load JSON
+	// Load Catbox video from JSON
 	const jsonPath = path.join(__dirname, "..", "nirob", "leave.json");
-	let formPush = { body: msg };
+	let videoURL = null;
 
 	if (fs.existsSync(jsonPath)) {
 		const videos = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
 		if (Array.isArray(videos) && videos.length > 0) {
-			const randomVideo = videos[Math.floor(Math.random() * videos.length)];
-			formPush = { body: msg, attachment: await getVideoStream(randomVideo) };
+			videoURL = videos[0]; // fixed video
 		}
+	}
+
+	// Prepare message
+	let formPush = { body: msg };
+	if (videoURL) {
+		formPush.attachment = await getVideoStream(videoURL);
 	}
 
 	return api.sendMessage(formPush, threadID);
