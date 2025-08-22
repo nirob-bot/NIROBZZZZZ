@@ -23,7 +23,7 @@ module.exports = {
                || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
       } catch {}
 
-      const msg = `{userName} তুই গ্রুপে থাকার যোগ্য না যা ভাগ 🤢`;
+      const msg = `${userName} তুই গ্রুপে থাকার যোগ্য না যা ভাগ 🤢`;
 
       // Fixed Catbox video URL
       const videoURL = "https://files.catbox.moe/918f0h.mp4";
