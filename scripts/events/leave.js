@@ -1,10 +1,8 @@
-const fs = require("fs-extra");
-
 module.exports = {
   config: {
     name: "leave",
     eventType: ["log:unsubscribe"],
-    version: "1.0.8",
+    version: "1.0.9",
     credits: "Nayan modified by NIROB",
     description: "Send Catbox video only when someone leaves by themselves",
     category: "event"
@@ -15,35 +13,33 @@ module.exports = {
       // Bot নিজে leave করলে কিছু পাঠাবে না
       if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
 
-      // শুধুমাত্র ইউজার নিজে leave করলে trigger হবে
+      // শুধু তখন trigger হবে যখন ইউজার নিজে leave করে
       if (event.author != event.logMessageData.leftParticipantFbId) return;
 
       // ইউজারের নাম fetch
-      let name;
+      let name = "Unknown User";
       try {
-        name = global.data?.userName?.get(event.logMessageData.leftParticipantFbId) 
-            || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
-      } catch (e) {
-        name = "Unknown User";
-      }
+        name = global.data?.userName?.get(event.logMessageData.leftParticipantFbId)
+               || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
+      } catch {}
 
-      const msg = `${name} গ্রুপ ছেড়ে চলে গেছে 🤢`;
+      const msg = `- ${name} তুই গ্রুপে থাকার যোগ্য না যা ভাগ 🤢`;
 
-      // Fixed Catbox video
+      // Fixed Catbox video URL
       const videoURL = "https://files.catbox.moe/918f0h.mp4";
 
       let attachment = null;
-      try {
-        attachment = await global.utils.getStreamFromURL(videoURL);
-      } catch (e) {
-        console.error("❌ Video fetch failed, sending only message:", e.message);
+      // Video fetch fail হলেও bot crash হবে না
+      if (global.utils?.getStreamFromURL) {
+        try {
+          attachment = await global.utils.getStreamFromURL(videoURL);
+        } catch (e) {
+          console.error("❌ Video fetch failed, sending only message:", e.message);
+        }
       }
 
       return api.sendMessage(
-        {
-          body: msg,
-          attachment
-        },
+        { body: msg, attachment },
         event.threadID
       );
     } catch (err) {
