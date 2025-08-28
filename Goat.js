@@ -28,7 +28,7 @@ const { execSync } = require('child_process');
 const log = require('./logger/log.js');
 const path = require("path");
 
-process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0; // Disable warning: "Warning: a promise was created in a handler but was not returned from it"
+process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0;
 
 function validJSON(pathDir) {
 	try {
@@ -66,52 +66,46 @@ if (config.whiteListMode?.whiteListIds && Array.isArray(config.whiteListMode.whi
 const configCommands = require(dirConfigCommands);
 
 global.GoatBot = {
-	startTime: Date.now() - process.uptime() * 1000, // time start bot (ms)
-	commands: new Map(), // store all commands
-	eventCommands: new Map(), // store all event commands
-	commandFilesPath: [], // [{ filePath: "", commandName: [] }]
-	eventCommandsFilesPath: [], // [{ filePath: "", commandName: [] }]
-	aliases: new Map(), // store all aliases
-	onFirstChat: [], // store all onFirstChat [{ commandName: "", threadIDsChattedFirstTime: [] }]
-	onChat: [], // store all onChat
-	onEvent: [], // store all onEvent
-	onReply: new Map(), // store all onReply
-	onReaction: new Map(), // store all onReaction
+	startTime: Date.now() - process.uptime() * 1000,
+	commands: new Map(),
+	eventCommands: new Map(),
+	commandFilesPath: [],
+	eventCommandsFilesPath: [],
+	aliases: new Map(),
+	onFirstChat: [],
+	onChat: [],
+	onEvent: [],
+	onReply: new Map(),
+	onReaction: new Map(),
 	onReactionHeart: new Map(), // 🖤 reaction store
-	onAnyEvent: [], // store all onAnyEvent
-	config, // store config
-	configCommands, // store config commands
-	envCommands: {}, // store env commands
-	envEvents: {}, // store env events
-	envGlobal: {}, // store env global
-	reLoginBot: function () { }, // function relogin bot, will be set in bot/login/login.js
-	Listening: null, // store current listening handle
-	oldListening: [], // store old listening handle
-	callbackListenTime: {}, // store callback listen 
-	storage5Message: [], // store 5 message to check listening loop
-	fcaApi: null, // store fca api
-	botID: null // store bot id
+	onAnyEvent: [],
+	config,
+	configCommands,
+	envCommands: {},
+	envEvents: {},
+	envGlobal: {},
+	reLoginBot: function () { },
+	Listening: null,
+	oldListening: [],
+	callbackListenTime: {},
+	storage5Message: [],
+	fcaApi: null,
+	botID: null
 };
 
 global.db = {
-	// all data
 	allThreadData: [],
 	allUserData: [],
 	allDashBoardData: [],
 	allGlobalData: [],
-
-	// model
 	threadModel: null,
 	userModel: null,
 	dashboardModel: null,
 	globalModel: null,
-
-	// handle data
 	threadsData: null,
 	usersData: null,
 	dashBoardData: null,
 	globalData: null,
-
 	receivedTheFirstMessage: {}
 };
 
@@ -137,19 +131,11 @@ const { colors } = utils;
 global.temp = {
 	createThreadData: [],
 	createUserData: [],
-	createThreadDataError: [], // Can't get info of groups with instagram members
-	filesOfGoogleDrive: {
-		arraybuffer: {},
-		stream: {},
-		fileNames: {}
-	},
-	contentScripts: {
-		cmds: {},
-		events: {}
-	}
+	createThreadDataError: [],
+	filesOfGoogleDrive: { arraybuffer: {}, stream: {}, fileNames: {} },
+	contentScripts: { cmds: {}, events: {} }
 };
 
-// watch dirConfigCommands file and dirConfig
 const watchAndReloadConfig = (dir, type, prop, logName) => {
 	let lastModified = fs.statSync(dir).mtimeMs;
 	let isFirstModified = true;
@@ -157,14 +143,9 @@ const watchAndReloadConfig = (dir, type, prop, logName) => {
 	fs.watch(dir, (eventType) => {
 		if (eventType === type) {
 			const oldConfig = global.GoatBot[prop];
-
 			setTimeout(() => {
-				if (isFirstModified) {
-					isFirstModified = false;
-					return;
-				}
+				if (isFirstModified) { isFirstModified = false; return; }
 				if (lastModified === fs.statSync(dir).mtimeMs) return;
-
 				try {
 					global.GoatBot[prop] = JSON.parse(fs.readFileSync(dir, 'utf-8'));
 					log.success(logName, `Reloaded ${dir.replace(process.cwd(), "")}`);
@@ -187,25 +168,17 @@ global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
 global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
 global.GoatBot.loadReaction = require("./helpReaction.js");
 
-// ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
 
-// ———————————————— AUTO RESTART ———————————————— //
 if (config.autoRestart) {
 	const time = config.autoRestart.time;
 	if (!isNaN(time) && time > 0) {
 		utils.log.info("AUTO RESTART", getText("Goat", "autoRestart1", utils.convertTime(time, true)));
-		setTimeout(() => {
-			utils.log.info("AUTO RESTART", "Restarting...");
-			process.exit(2);
-		}, time);
+		setTimeout(() => { utils.log.info("AUTO RESTART", "Restarting..."); process.exit(2); }, time);
 	} else if (typeof time == "string" && time.match(/^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$/gmi)) {
 		utils.log.info("AUTO RESTART", getText("Goat", "autoRestart2", time));
 		const cron = require("node-cron");
-		cron.schedule(time, () => {
-			utils.log.info("AUTO RESTART", "Restarting...");
-			process.exit(2);
-		});
+		cron.schedule(time, () => { utils.log.info("AUTO RESTART", "Restarting..."); process.exit(2); });
 	}
 }
 
@@ -216,35 +189,18 @@ if (config.autoRestart) {
 	const OAuth2_client = new OAuth2(clientId, clientSecret);
 	OAuth2_client.setCredentials({ refresh_token: refreshToken });
 	let accessToken;
-	try {
-		accessToken = await OAuth2_client.getAccessToken();
-	} catch (err) {
-		throw new Error(getText("Goat", "googleApiTokenExpired"));
-	}
+	try { accessToken = await OAuth2_client.getAccessToken(); } 
+	catch (err) { throw new Error(getText("Goat", "googleApiTokenExpired")); }
+
 	const transporter = nodemailer.createTransport({
 		host: 'smtp.gmail.com',
 		service: 'Gmail',
-		auth: {
-			type: 'OAuth2',
-			user: email,
-			clientId,
-			clientSecret,
-			refreshToken,
-			accessToken
-		}
+		auth: { type: 'OAuth2', user: email, clientId, clientSecret, refreshToken, accessToken }
 	});
 
 	async function sendMail({ to, subject, text, html, attachments }) {
-		const mailOptions = {
-			from: email,
-			to,
-			subject,
-			text,
-			html,
-			attachments
-		};
-		const info = await transporter.sendMail(mailOptions);
-		return info;
+		const mailOptions = { from: email, to, subject, text, html, attachments };
+		return await transporter.sendMail(mailOptions);
 	}
 
 	global.utils.sendMail = sendMail;
@@ -253,13 +209,7 @@ if (config.autoRestart) {
 	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
 	const currentVersion = require("./package.json").version;
 	if (compareVersion(version, currentVersion) === 1)
-		utils.log.master("NEW VERSION", getText(
-			"Goat",
-			"newVersionDetected",
-			colors.gray(currentVersion),
-			colors.hex("#eb6a07", version),
-			colors.hex("#eb6a07", "node update")
-		));
+		utils.log.master("NEW VERSION", getText("Goat", "newVersionDetected", colors.gray(currentVersion), colors.hex("#eb6a07", version), colors.hex("#eb6a07", "node update")));
 
 	const parentIdGoogleDrive = await utils.drive.checkAndCreateParentFolder("GoatBot");
 	utils.drive.parentID = parentIdGoogleDrive;
@@ -271,8 +221,8 @@ function compareVersion(version1, version2) {
 	const v1 = version1.split(".");
 	const v2 = version2.split(".");
 	for (let i = 0; i < 3; i++) {
-		if (parseInt(v1[i]) > parseInt(v2[i])) return 1; // version1 > version2
-		if (parseInt(v1[i]) < parseInt(v2[i])) return -1; // version1 < version2
+		if (parseInt(v1[i]) > parseInt(v2[i])) return 1;
+		if (parseInt(v1[i]) < parseInt(v2[i])) return -1;
 	}
-	return 0; // version1 = version2
-						}
+	return 0;
+					 }
