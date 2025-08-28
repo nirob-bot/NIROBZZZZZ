@@ -1,6 +1,5 @@
 const { getPrefix } = global.utils;
 const { commands, aliases } = global.GoatBot;
-const { createCanvas, loadImage } = require('canvas');
 
 const helpImages = [
 "https://files.catbox.moe/wseew7.jpg",
