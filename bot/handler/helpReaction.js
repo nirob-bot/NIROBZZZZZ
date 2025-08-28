@@ -1,18 +1,42 @@
 /**
- * Placeholder for helpReaction.js
- * This allows Goat Bot to start without the "Cannot find module" error.
- * Replace this with the official file from https://github.com/ntkhang03/Goat-Bot-V2 later.
+ * helpReaction.js
+ * Works with Goat Bot commands that use reactions (like /help with 🖤)
+ * Placeholder version for testing without official Messenger hooks.
+ * Later you can replace with the official version for full API support.
  */
 
 module.exports = {
-    // Example structure: store reaction functions here
-    reactions: {},
+    // Map to store reactions for messages
+    onReactionMap: new Map(),
 
-    addReaction: function(name, callback) {
-        this.reactions[name] = callback;
+    /**
+     * Add a reaction handler for a specific message
+     * @param {string|number} messageID
+     * @param {object} callbackObj - { page, categories, threadID, prefix, messageObj, onReact }
+     */
+    addReaction: function(messageID, callbackObj) {
+        this.onReactionMap.set(messageID, callbackObj);
     },
 
-    getReaction: function(name) {
-        return this.reactions[name] || null;
+    /**
+     * Trigger a reaction manually (for testing)
+     * @param {string|number} messageID
+     * @param {object} reactionEvent - { reaction: '🖤', messageID, userID }
+     */
+    triggerReaction: async function(messageID, reactionEvent) {
+        const callbackObj = this.onReactionMap.get(messageID);
+        if (callbackObj && typeof callbackObj.onReact === "function") {
+            await callbackObj.onReact(reactionEvent);
+        }
+    },
+
+    /**
+     * Remove a reaction handler (optional)
+     * @param {string|number} messageID
+     */
+    removeReaction: function(messageID) {
+        if (this.onReactionMap.has(messageID)) {
+            this.onReactionMap.delete(messageID);
+        }
     }
 };
