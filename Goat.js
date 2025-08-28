@@ -77,9 +77,9 @@ global.GoatBot = {
 	onEvent: [], // store all onEvent
 	onReply: new Map(), // store all onReply
 	onReaction: new Map(), // store all onReaction
+	
 	onAnyEvent: [], // store all onAnyEvent
 	config, // store config
-  global.GoatBot.loadReaction = require("./helpReaction.js");
 	configCommands, // store config commands
 	envCommands: {}, // store env commands
 	envEvents: {}, // store env events
@@ -194,6 +194,9 @@ global.GoatBot.envGlobal = global.GoatBot.configCommands.envGlobal;
 global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
 global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
 
+// Load reactions (must be after GoatBot is initialized)
+global.GoatBot.loadReaction = require("./helpReaction.js");
+
 // ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
 
@@ -300,4 +303,4 @@ function compareVersion(version1, version2) {
 			return -1; // version1 < version2
 	}
 	return 0; // version1 = version2
-}
+		}
