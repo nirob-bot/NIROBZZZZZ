@@ -1,15 +1,13 @@
 const { getPrefix } = global.utils;
 const { commands, aliases } = global.GoatBot;
 
-// Catbox images array
-const helpImages = [
+const catboxImages = [
   "https://files.catbox.moe/wseew7.jpg",
   "https://files.catbox.moe/tywnfi.jpg",
   "https://files.catbox.moe/tse9uk.jpg",
   "https://files.catbox.moe/l8d5af.jpg"
 ];
 
-// Split array into n parts evenly
 function splitArray(arr, parts = 10) {
   const len = arr.length;
   const out = [];
@@ -21,36 +19,16 @@ function splitArray(arr, parts = 10) {
   return out;
 }
 
-// Small caps font function
-function toSmallCaps(text) {
-  return text.split("").map(c => {
-    if (c >= 'A' && c <= 'Z') return String.fromCharCode(c.charCodeAt(0) + 0x1D00);
-    if (c >= 'a' && c <= 'z') return String.fromCharCode(c.charCodeAt(0) + 0x1D00);
-    return c;
-  }).join("");
-}
-
-// Get random image
-function getRandomImage() {
-  return helpImages[Math.floor(Math.random() * helpImages.length)];
-}
-
 module.exports = {
   config: {
     name: "help",
-    version: "12.0",
-    author: "ＮＩＲＯＢ (Kakashi aesthetic + random image)",
+    version: "7.1",
+    author: "ＮＩＲＯＢ (Kakashi update)",
     role: 0,
-    shortDescription: {
-      en: "Kakashi - BOT help menu with 10 pages & random catbox image",
-    },
-    longDescription: {
-      en: "Displays commands in 10 pages with small caps categories, emoji, correct prefix, and a random catbox image.",
-    },
+    shortDescription: { en: "Kakashi - BOT help menu with 🖤 next page" },
+    longDescription: { en: "Interactive help menu 10 pages with random catbox image" },
     category: "info",
-    guide: {
-      en: "{pn} [1-10]",
-    },
+    guide: { en: "{pn} [1-10]" },
   },
 
   onStart: async function ({ message, args, event, role }) {
@@ -61,7 +39,6 @@ module.exports = {
       if (p >= 1 && p <= 10) page = p;
     }
 
-    // Collect commands available for the role
     const availableCommands = [];
     for (const [name, cmd] of commands) {
       if (cmd.config.role > role) continue;
@@ -84,48 +61,34 @@ module.exports = {
     const pageCategories = allCategories.slice(startIndex, endIndex);
 
     // Build message
-    let msg = `
-╔════════════════════════╗
-│ 🐾 Kakashi Help Menu 🐾
-│         Page ${page}/${totalPages}
-╚════════════════════════╝\n`;
+    const imgUrl = catboxImages[Math.floor(Math.random() * catboxImages.length)];
+    let msg = `───────────────\n`;
+    msg += `Help Menu - Page ${page}/${totalPages}\n───────────────\n\n`;
 
     for (const cat of pageCategories) {
-      const emoji = getCategoryEmoji(cat);
-      msg += `Category: ${emoji} ${toSmallCaps(cat)}\n`;
-      msg += categories[cat]
-        .map(cmdName => `${prefix}${cmdName}`)
-        .join("   ") + "\n\n";
+      msg += `Category: ${cat}\n`;
+      msg += categories[cat].map(cmdName => `${prefix}${cmdName}`).join("   ") + "\n\n";
     }
 
-    msg += `────────────────────────────\n`;
+    msg += `───────────────\n`;
     msg += `Dev: Nirob | Nick: Kakashi\n`;
     msg += `FB: https://facebook.com/hatake.kakashi.NN\n`;
-    msg += `────────────────────────────\n`;
-    msg += `Type "${prefix}help ${page === totalPages ? 1 : page + 1}" for next page.\n`;
-    msg += `────────────────────────────\n`;
+    msg += `Type "/help ${page === totalPages ? 1 : page + 1}" to see next page\n`;
+    msg += `───────────────\n`;
 
-    // Send message with random catbox image
-    await message.reply({
-      body: msg,
-      attachment: await global.utils.getStreamFromURL(getRandomImage()),
+    const sentMsg = await message.reply({ body: msg, attachment: await global.utils.getStreamFromURL(imgUrl) });
+
+    // Reaction for next page
+    global.GoatBot.onReaction.set(sentMsg.messageID, {
+      author: event.senderID,
+      page,
+      totalPages,
+      sendPage: async (nextPage, data) => {
+        const nextMsg = await module.exports.onStart({ message, args: [nextPage.toString()], event, role });
+        global.GoatBot.onReaction.set(nextMsg.messageID, data);
+      },
+      threadID: event.threadID,
+      prefix
     });
-  },
+  }
 };
-
-// Emoji mapping for categories
-function getCategoryEmoji(cat) {
-  const mapping = {
-    "Image": "🐱",
-    "Utility": "⚙",
-    "Account": "👤",
-    "Chat Box": "💬",
-    "Owner": "🔒",
-    "ChatGPT": "🤖",
-    "Media": "🖼",
-    "Fun": "🎮",
-    "User": "👥",
-    "Games": "🧩",
-  };
-  return mapping[cat] || "🌸";
-}
