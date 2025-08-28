@@ -1,20 +1,5 @@
 /**
  * @author NTKhang
- * ! The source code is written by NTKhang, please don't change the author's name everywhere. Thank you for using
- * ! Official source code: https://github.com/ntkhang03/Goat-Bot-V2
- * ! If you do not download the source code from the above address, you are using an unknown version and at risk of having your account hacked
- *
- * English:
- * ! Please do not change the below code, it is very important for the project.
- * It is my motivation to maintain and develop the project for free.
- * ! If you change it, you will be banned forever
- * Thank you for using
- *
- * Vietnamese:
- * ! Vui lòng không thay đổi mã bên dưới, nó rất quan trọng đối với dự án.
- * Nó là động lực để tôi duy trì và phát triển dự án miễn phí.
- * ! Nếu thay đổi nó, bạn sẽ bị cấm vĩnh viễn
- * Cảm ơn bạn đã sử dụng
  */
 
 process.on('unhandledRejection', error => console.log(error));
@@ -52,9 +37,7 @@ const dirConfigCommands = path.normalize(`${__dirname}/configCommands${['product
 const dirAccount = path.normalize(`${__dirname}/account${['production', 'development'].includes(NODE_ENV) ? '.dev.txt' : '.txt'}`);
 
 for (const pathDir of [dirConfig, dirConfigCommands]) {
-	try {
-		validJSON(pathDir);
-	}
+	try { validJSON(pathDir); }
 	catch (err) {
 		log.error("CONFIG", `Invalid JSON file "${pathDir.replace(__dirname, "")}":\n${err.message.split("\n").map(line => `  ${line}`).join("\n")}\nPlease fix it and restart bot`);
 		process.exit(0);
@@ -77,7 +60,7 @@ global.GoatBot = {
 	onEvent: [],
 	onReply: new Map(),
 	onReaction: new Map(),
-	onReactionHeart: new Map(), // 🖤 reaction store
+	onReactionHeart: new Map(),
 	onAnyEvent: [],
 	config,
 	configCommands,
@@ -225,4 +208,4 @@ function compareVersion(version1, version2) {
 		if (parseInt(v1[i]) < parseInt(v2[i])) return -1;
 	}
 	return 0;
-					 }
+	}
