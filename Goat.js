@@ -194,9 +194,6 @@ global.GoatBot.envGlobal = global.GoatBot.configCommands.envGlobal;
 global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
 global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
 
-// Load reaction system
-global.GoatBot.loadReaction = require("./helpReaction.js");
-
 // ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
 
