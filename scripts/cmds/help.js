@@ -1,94 +1,121 @@
 const { getPrefix } = global.utils;
 const { commands, aliases } = global.GoatBot;
+const { createCanvas, loadImage } = require('canvas');
 
-const catboxImages = [
-  "https://files.catbox.moe/wseew7.jpg",
-  "https://files.catbox.moe/tywnfi.jpg",
-  "https://files.catbox.moe/tse9uk.jpg",
-  "https://files.catbox.moe/l8d5af.jpg"
+const helpImages = [
+"https://files.catbox.moe/wseew7.jpg",
+"https://files.catbox.moe/tywnfi.jpg",
+"https://files.catbox.moe/tse9uk.jpg",
+"https://files.catbox.moe/l8d5af.jpg"
 ];
 
+// Split array into n parts evenly
 function splitArray(arr, parts = 10) {
-  const len = arr.length;
-  const out = [];
-  let i = 0;
-  while (i < len) {
-    out.push(arr.slice(i, i + Math.ceil(len / parts)));
-    i += Math.ceil(len / parts);
-  }
-  return out;
+const len = arr.length;
+const out = [];
+let i = 0;
+while (i < len) {
+out.push(arr.slice(i, i + Math.ceil(len / parts)));
+i += Math.ceil(len / parts);
+}
+return out;
+}
+
+// Random catbox image
+function getRandomImage() {
+return helpImages[Math.floor(Math.random() * helpImages.length)];
+}
+
+// Build category style
+function buildCategory(catName, commands, prefix) {
+const cmdList = commands.map(c => ${prefix}${c}).join("   ");
+return ───────────────\nCategory: ${catName}\n${cmdList}\n───────────────\n;
 }
 
 module.exports = {
-  config: {
-    name: "help",
-    version: "7.1",
-    author: "ＮＩＲＯＢ (Kakashi update)",
-    role: 0,
-    shortDescription: { en: "Kakashi - BOT help menu with 🖤 next page" },
-    longDescription: { en: "Interactive help menu 10 pages with random catbox image" },
-    category: "info",
-    guide: { en: "{pn} [1-10]" },
-  },
+config: {
+name: "help",
+version: "15.0",
+author: "ＮＩＲＯＢ (Kakashi interactive + styled categories)",
+role: 0,
+shortDescription: { en: "10-page interactive help menu with 🖤 reaction" },
+longDescription: { en: "Category styled, reaction next page, random catbox image." },
+category: "info",
+guide: { en: "{pn} [1-10]" },
+},
 
-  onStart: async function ({ message, args, event, role }) {
-    const prefix = getPrefix(event.threadID) || global.GoatBot.config.prefix || "!";
-    let page = 1;
-    if (args.length > 0) {
-      const p = parseInt(args[0]);
-      if (p >= 1 && p <= 10) page = p;
-    }
+onStart: async function({ message, args, event, role }) {
+const prefix = getPrefix(event.threadID) || global.GoatBot.config.prefix || "!";
+let page = 1;
 
-    const availableCommands = [];
-    for (const [name, cmd] of commands) {
-      if (cmd.config.role > role) continue;
-      availableCommands.push(cmd);
-    }
+if (args.length > 0) {
+const p = parseInt(args[0]);
+if (!isNaN(p) && p >= 1 && p <= 10) page = p;
+}
 
-    // Group commands by category
-    const categories = {};
-    for (const cmd of availableCommands) {
-      const cat = cmd.config.category || "Other";
-      if (!categories[cat]) categories[cat] = [];
-      categories[cat].push(cmd.config.name);
-    }
+const availableCommands = [];
+for (const [name, cmd] of commands) {
+if (cmd.config.role > role) continue;
+availableCommands.push(cmd);
+}
 
-    const allCategories = Object.keys(categories);
-    const totalPages = 10;
-    const perPage = Math.ceil(allCategories.length / totalPages);
-    const startIndex = (page - 1) * perPage;
-    const endIndex = startIndex + perPage;
-    const pageCategories = allCategories.slice(startIndex, endIndex);
+// Group commands by category
+const categories = {};
+for (const cmd of availableCommands) {
+const cat = cmd.config.category || "Other";
+if (!categories[cat]) categories[cat] = [];
+categories[cat].push(cmd.config.name);
+}
 
-    // Build message
-    const imgUrl = catboxImages[Math.floor(Math.random() * catboxImages.length)];
-    let msg = `───────────────\n`;
-    msg += `Help Menu - Page ${page}/${totalPages}\n───────────────\n\n`;
+const allCategories = Object.keys(categories);
+const totalPages = 10;
+const perPage = Math.ceil(allCategories.length / totalPages);
 
-    for (const cat of pageCategories) {
-      msg += `Category: ${cat}\n`;
-      msg += categories[cat].map(cmdName => `${prefix}${cmdName}`).join("   ") + "\n\n";
-    }
+async function sendPage(p) {
+const startIndex = (p - 1) * perPage;
+const endIndex = startIndex + perPage;
+const pageCategories = allCategories.slice(startIndex, endIndex);
 
-    msg += `───────────────\n`;
-    msg += `Dev: Nirob | Nick: Kakashi\n`;
-    msg += `FB: https://facebook.com/hatake.kakashi.NN\n`;
-    msg += `Type "/help ${page === totalPages ? 1 : page + 1}" to see next page\n`;
-    msg += `───────────────\n`;
+let msg = 🐾 Kakashi Help Menu 🐾\n         Page ${p}/${totalPages}\n────────────────────────────\n;
 
-    const sentMsg = await message.reply({ body: msg, attachment: await global.utils.getStreamFromURL(imgUrl) });
+for (const cat of pageCategories) {
+msg += buildCategory(cat, categories[cat], prefix);
+}
 
-    // Reaction for next page
-    global.GoatBot.onReaction.set(sentMsg.messageID, {
-      author: event.senderID,
-      page,
-      totalPages,
-      sendPage: async (nextPage, data) => {
-        const nextMsg = await module.exports.onStart({ message, args: [nextPage.toString()], event, role });
-        global.GoatBot.onReaction.set(nextMsg.messageID, data);
-      },
-      threadID: event.threadID,
-      prefix
-    });
-  }
+msg += ────────────────────────────\nDev: Nirob | Nick: Kakashi\nFB: https://facebook.com/hatake.kakashi.NN\n────────────────────────────\nReact 🖤 to see next page.\n────────────────────────────\n;
+
+const sentMsg = await message.reply({
+body: msg,
+attachment: await global.utils.getStreamFromURL(getRandomImage())
+});
+
+// Save reaction listener for all users
+global.GoatBot.onReaction.set(sentMsg.messageID, {
+page: p,
+categories,
+threadID: event.threadID,
+prefix,
+messageObj: message,
+onReact: async (eventReact) => {
+if (eventReact.reaction !== '🖤') return;
+
+// Unsend current message    
+  await global.GoatBot.api.unsendMessage(eventReact.messageID);    
+
+  // Next page    
+  let nextPage = p + 1;    
+  if (nextPage > totalPages) nextPage = 1;    
+
+  // Send next page    
+  await module.exports.onStart({ message, args: [nextPage.toString()], event, role });    
+}
+
+});
+}
+
+sendPage(page);
+
+}
 };
+
+  
