@@ -192,10 +192,7 @@ watchAndReloadConfig(dirConfig, 'change', 'config', 'CONFIG');
 
 global.GoatBot.envGlobal = global.GoatBot.configCommands.envGlobal;
 global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
-global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
-
-// Load reactions (must be after GoatBot is initialized)
-global.GoatBot.loadReaction = require("./helpReaction.js");
+global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents
 
 // ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
