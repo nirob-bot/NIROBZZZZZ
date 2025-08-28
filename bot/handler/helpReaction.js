@@ -1,9 +1,18 @@
-module.exports = async function({ event }) {
-    // Check if this message has a reaction listener
-    if (!global.GoatBot.onReaction.has(event.messageID)) return;
+/**
+ * Placeholder for helpReaction.js
+ * This allows Goat Bot to start without the "Cannot find module" error.
+ * Replace this with the official file from https://github.com/ntkhang03/Goat-Bot-V2 later.
+ */
 
-    const data = global.GoatBot.onReaction.get(event.messageID);
+module.exports = {
+    // Example structure: store reaction functions here
+    reactions: {},
 
-    // Remove author check so all users can trigger
-    if (data.onReact) await data.onReact(event);
+    addReaction: function(name, callback) {
+        this.reactions[name] = callback;
+    },
+
+    getReaction: function(name) {
+        return this.reactions[name] || null;
+    }
 };
