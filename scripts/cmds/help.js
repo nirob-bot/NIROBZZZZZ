@@ -1,6 +1,14 @@
 const { getPrefix } = global.utils;
 const { commands, aliases } = global.GoatBot;
 
+// Catbox images array
+const helpImages = [
+  "https://files.catbox.moe/wseew7.jpg",
+  "https://files.catbox.moe/tywnfi.jpg",
+  "https://files.catbox.moe/tse9uk.jpg",
+  "https://files.catbox.moe/l8d5af.jpg"
+];
+
 // Split array into n parts evenly
 function splitArray(arr, parts = 10) {
   const len = arr.length;
@@ -13,76 +21,111 @@ function splitArray(arr, parts = 10) {
   return out;
 }
 
+// Small caps font function
+function toSmallCaps(text) {
+  return text.split("").map(c => {
+    if (c >= 'A' && c <= 'Z') return String.fromCharCode(c.charCodeAt(0) + 0x1D00);
+    if (c >= 'a' && c <= 'z') return String.fromCharCode(c.charCodeAt(0) + 0x1D00);
+    return c;
+  }).join("");
+}
+
+// Get random image
+function getRandomImage() {
+  return helpImages[Math.floor(Math.random() * helpImages.length)];
+}
+
 module.exports = {
   config: {
     name: "help",
-    version: "4.0",
-    author: "ＮＩＲＯＢ ᶻ 𝗓 𐰁 (Aesthetic update by Kakashi)",
-    countDown: 5,
+    version: "12.0",
+    author: "ＮＩＲＯＢ (Kakashi aesthetic + random image)",
     role: 0,
     shortDescription: {
-      en: "Kakashi - BOT help menu, split into 10 pages!",
+      en: "Kakashi - BOT help menu with 10 pages & random catbox image",
     },
     longDescription: {
-      en: "Shows commands with aesthetic style (no pic) on 10 pages.",
+      en: "Displays commands in 10 pages with small caps categories, emoji, correct prefix, and a random catbox image.",
     },
     category: "info",
     guide: {
       en: "{pn} [1-10]",
     },
-    priority: 1,
   },
 
   onStart: async function ({ message, args, event, role }) {
-    const prefix = getPrefix(event.threadID);
+    const prefix = getPrefix(event.threadID) || global.GoatBot.config.prefix || "!";
     let page = 1;
     if (args.length > 0) {
       const p = parseInt(args[0]);
       if (p >= 1 && p <= 10) page = p;
     }
 
+    // Collect commands available for the role
     const availableCommands = [];
     for (const [name, cmd] of commands) {
       if (cmd.config.role > role) continue;
-      availableCommands.push(name);
+      availableCommands.push(cmd);
     }
-    availableCommands.sort();
 
-    const splitCommands = splitArray(availableCommands, 10);
-    const commandsOnPage = splitCommands[page - 1] || [];
-
-    let msg = `
-╔═══════•°🌸°•═══════╗
-     🐾 𝙺𝚊𝚔𝚊𝚜𝚑𝚒 𝙷𝚎𝚕𝚙 𝙼𝚎𝚗𝚞 🐾
-         𝙿𝚊𝚐𝚎 ${page}/10
-╚═══════•°🌸°•═══════╝\n\n`;
-
+    // Group commands by category
     const categories = {};
-    for (const cmdName of commandsOnPage) {
-      const cmd = commands.get(cmdName) || commands.get(aliases.get(cmdName));
-      if (!cmd) continue;
+    for (const cmd of availableCommands) {
       const cat = cmd.config.category || "Other";
       if (!categories[cat]) categories[cat] = [];
-      categories[cat].push(cmdName);
+      categories[cat].push(cmd.config.name);
     }
 
-    for (const catName of Object.keys(categories)) {
-      msg += `🌷  ${stylize(catName)} 🌷\n`;
-      msg += categories[catName]
-        .map((cmd) => `➺ ${prefix}${cmd}`)
+    const allCategories = Object.keys(categories);
+    const totalPages = 10;
+    const perPage = Math.ceil(allCategories.length / totalPages);
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    const pageCategories = allCategories.slice(startIndex, endIndex);
+
+    // Build message
+    let msg = `
+╔════════════════════════╗
+│ 🐾 Kakashi Help Menu 🐾
+│         Page ${page}/${totalPages}
+╚════════════════════════╝\n`;
+
+    for (const cat of pageCategories) {
+      const emoji = getCategoryEmoji(cat);
+      msg += `Category: ${emoji} ${toSmallCaps(cat)}\n`;
+      msg += categories[cat]
+        .map(cmdName => `${prefix}${cmdName}`)
         .join("   ") + "\n\n";
     }
 
-    msg += `╭──────────────────────────╮\n`;
-    msg += `   ✨ Use "${prefix}help ${page === 10 ? 1 : page + 1}" to see more ✨\n`;
-    msg += `   🌸 𝙳𝚎𝚟: 𝙽𝚒𝚛𝚘𝚋 ꨄ︎ | 𝙽𝚒𝚌𝚔: 𝙺𝚊𝚔𝚊𝚜𝚑𝚒 ꨄ︎\n`;
-    msg += `   🔗 FB: https://www.facebook.com/hatake.kakashi.NN\n`;
-    msg += `╰──────────────────────────╯\n`;
+    msg += `────────────────────────────\n`;
+    msg += `Dev: Nirob | Nick: Kakashi\n`;
+    msg += `FB: https://facebook.com/hatake.kakashi.NN\n`;
+    msg += `────────────────────────────\n`;
+    msg += `Type "${prefix}help ${page === totalPages ? 1 : page + 1}" for next page.\n`;
+    msg += `────────────────────────────\n`;
 
-    await message.reply(msg);
+    // Send message with random catbox image
+    await message.reply({
+      body: msg,
+      attachment: await global.utils.getStreamFromURL(getRandomImage()),
+    });
   },
 };
 
-function stylize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  }
+// Emoji mapping for categories
+function getCategoryEmoji(cat) {
+  const mapping = {
+    "Image": "🐱",
+    "Utility": "⚙",
+    "Account": "👤",
+    "Chat Box": "💬",
+    "Owner": "🔒",
+    "ChatGPT": "🤖",
+    "Media": "🖼",
+    "Fun": "🎮",
+    "User": "👥",
+    "Games": "🧩",
+  };
+  return mapping[cat] || "🌸";
+}
