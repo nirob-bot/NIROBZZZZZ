@@ -69,15 +69,15 @@ global.GoatBot = {
 	startTime: Date.now() - process.uptime() * 1000, // time start bot (ms)
 	commands: new Map(), // store all commands
 	eventCommands: new Map(), // store all event commands
-	commandFilesPath: [], // [{ filePath: "", commandName: [] }
-	eventCommandsFilesPath: [], // [{ filePath: "", commandName: [] }
+	commandFilesPath: [], // [{ filePath: "", commandName: [] }]
+	eventCommandsFilesPath: [], // [{ filePath: "", commandName: [] }]
 	aliases: new Map(), // store all aliases
-	onFirstChat: [], // store all onFirstChat [{ commandName: "", threadIDsChattedFirstTime: [] }}]
+	onFirstChat: [], // store all onFirstChat [{ commandName: "", threadIDsChattedFirstTime: [] }]
 	onChat: [], // store all onChat
 	onEvent: [], // store all onEvent
 	onReply: new Map(), // store all onReply
 	onReaction: new Map(), // store all onReaction
-    onReaction: new Map(), // 🖤 reaction store
+	onReactionHeart: new Map(), // 🖤 reaction store
 	onAnyEvent: [], // store all onAnyEvent
 	config, // store config
 	configCommands, // store config commands
@@ -113,8 +113,6 @@ global.db = {
 	globalData: null,
 
 	receivedTheFirstMessage: {}
-
-	// all will be set in bot/login/loadData.js
 };
 
 global.client = {
@@ -160,26 +158,20 @@ const watchAndReloadConfig = (dir, type, prop, logName) => {
 		if (eventType === type) {
 			const oldConfig = global.GoatBot[prop];
 
-			// wait 200ms to reload config
 			setTimeout(() => {
+				if (isFirstModified) {
+					isFirstModified = false;
+					return;
+				}
+				if (lastModified === fs.statSync(dir).mtimeMs) return;
+
 				try {
-					// if file change first time (when start bot, maybe you know it's called when start bot?) => not reload
-					if (isFirstModified) {
-						isFirstModified = false;
-						return;
-					}
-					// if file not change => not reload
-					if (lastModified === fs.statSync(dir).mtimeMs) {
-						return;
-					}
 					global.GoatBot[prop] = JSON.parse(fs.readFileSync(dir, 'utf-8'));
 					log.success(logName, `Reloaded ${dir.replace(process.cwd(), "")}`);
-				}
-				catch (err) {
+				} catch (err) {
 					log.warn(logName, `Can't reload ${dir.replace(process.cwd(), "")}`);
 					global.GoatBot[prop] = oldConfig;
-				}
-				finally {
+				} finally {
 					lastModified = fs.statSync(dir).mtimeMs;
 				}
 			}, 200);
@@ -207,8 +199,7 @@ if (config.autoRestart) {
 			utils.log.info("AUTO RESTART", "Restarting...");
 			process.exit(2);
 		}, time);
-	}
-	else if (typeof time == "string" && time.match(/^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$/gmi)) {
+	} else if (typeof time == "string" && time.match(/^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$/gmi)) {
 		utils.log.info("AUTO RESTART", getText("Goat", "autoRestart2", time));
 		const cron = require("node-cron");
 		cron.schedule(time, () => {
@@ -219,7 +210,6 @@ if (config.autoRestart) {
 }
 
 (async () => {
-	// ———————————————— SETUP MAIL ———————————————— //
 	const { gmailAccount } = config.credentials;
 	const { email, clientId, clientSecret, refreshToken } = gmailAccount;
 	const OAuth2 = google.auth.OAuth2;
@@ -228,8 +218,7 @@ if (config.autoRestart) {
 	let accessToken;
 	try {
 		accessToken = await OAuth2_client.getAccessToken();
-	}
-	catch (err) {
+	} catch (err) {
 		throw new Error(getText("Goat", "googleApiTokenExpired"));
 	}
 	const transporter = nodemailer.createTransport({
@@ -246,18 +235,6 @@ if (config.autoRestart) {
 	});
 
 	async function sendMail({ to, subject, text, html, attachments }) {
-		const transporter = nodemailer.createTransport({
-			host: 'smtp.gmail.com',
-			service: 'Gmail',
-			auth: {
-				type: 'OAuth2',
-				user: email,
-				clientId,
-				clientSecret,
-				refreshToken,
-				accessToken
-			}
-		});
 		const mailOptions = {
 			from: email,
 			to,
@@ -273,7 +250,6 @@ if (config.autoRestart) {
 	global.utils.sendMail = sendMail;
 	global.utils.transporter = transporter;
 
-	// ———————————————— CHECK VERSION ———————————————— //
 	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
 	const currentVersion = require("./package.json").version;
 	if (compareVersion(version, currentVersion) === 1)
@@ -284,10 +260,10 @@ if (config.autoRestart) {
 			colors.hex("#eb6a07", version),
 			colors.hex("#eb6a07", "node update")
 		));
-	// —————————— CHECK FOLDER GOOGLE DRIVE —————————— //
+
 	const parentIdGoogleDrive = await utils.drive.checkAndCreateParentFolder("GoatBot");
 	utils.drive.parentID = parentIdGoogleDrive;
-	// ———————————————————— LOGIN ———————————————————— //
+
 	require(`./bot/login/login${NODE_ENV === 'development' ? '.dev.js' : '.js'}`);
 })();
 
@@ -295,10 +271,8 @@ function compareVersion(version1, version2) {
 	const v1 = version1.split(".");
 	const v2 = version2.split(".");
 	for (let i = 0; i < 3; i++) {
-		if (parseInt(v1[i]) > parseInt(v2[i]))
-			return 1; // version1 > version2
-		if (parseInt(v1[i]) < parseInt(v2[i]))
-			return -1; // version1 < version2
+		if (parseInt(v1[i]) > parseInt(v2[i])) return 1; // version1 > version2
+		if (parseInt(v1[i]) < parseInt(v2[i])) return -1; // version1 < version2
 	}
 	return 0; // version1 = version2
-}
+						}
